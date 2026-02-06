@@ -27,6 +27,9 @@
           fontFamily: {
             'title': ['Bricolage Grotesque', 'sans-serif'],
             'body': ['Bricolage Grotesque', 'sans-serif'],
+          },
+          screens: {
+            'xs': '475px',
           }
         }
       }
@@ -72,17 +75,107 @@
         linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
       background-size: 50px 50px;
     }
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #0a0a0a; }
     ::-webkit-scrollbar-thumb { background: #00ff88; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #00cc6a; }
+    
+    /* Mobile-specific styles */
+    @media (max-width: 768px) {
+      .grid-pattern {
+        background-size: 30px 30px;
+      }
+      .gradient-border::before {
+        padding: 0.5px;
+      }
+    }
+    
+    /* Responsive table styles */
+    .responsive-table-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .responsive-table {
+      min-width: 768px;
+    }
+    
+    @media (min-width: 1024px) {
+      .responsive-table {
+        min-width: 0;
+      }
+    }
   </style>
 </head>
 <body>
   <div id="app">
-    <div class="min-h-screen bg-os-black grid-pattern flex">
-      <!-- Sidebar -->
-      <aside class="w-64 bg-os-dark border-r border-white/5 flex flex-col">
+    <div class="min-h-screen bg-os-black grid-pattern flex flex-col lg:flex-row">
+      <!-- Mobile Header -->
+      <header class="lg:hidden bg-os-black/90 backdrop-blur-md border-b border-white/5 px-4 py-3 sticky top-0 z-50">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <button @click="mobileMenuOpen = !mobileMenuOpen" class="p-2 text-os-green">
+              <span class="text-xl">☰</span>
+            </button>
+            <h1 class="font-title text-lg font-bold text-os-green glow-green">
+              <span class="scramble-text">{{ scrambledTitle }}</span>
+            </h1>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-os-gray text-xs hidden xs:block">{{ currentDate }}</span>
+            <div class="w-8 h-8 bg-os-green/20 rounded-full flex items-center justify-center">
+              <span class="text-os-green text-sm font-bold">W6</span>
+            </div>
+          </div>
+        </div>
+      </header>
+      
+      <!-- Mobile Menu Overlay -->
+      <div v-if="mobileMenuOpen" 
+           class="lg:hidden fixed inset-0 z-40 bg-black/90 backdrop-blur-md"
+           @click="mobileMenuOpen = false">
+        <div class="absolute top-0 left-0 right-0 bg-os-dark border-b border-white/5 p-6"
+             @click.stop>
+          <div class="flex items-center justify-between mb-6">
+            <h1 class="font-title text-xl font-bold text-os-green glow-green">
+              <span class="scramble-text">{{ scrambledTitle }}</span>
+            </h1>
+            <button @click="mobileMenuOpen = false" class="p-2 text-os-gray hover:text-white">
+              <span class="text-xl">×</span>
+            </button>
+          </div>
+          
+          <nav class="space-y-2">
+            <button 
+              v-for="tab in tabs"
+              :key="tab.id"
+              @click="activeTab = tab.id; mobileMenuOpen = false"
+              :class="[
+                'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300',
+                activeTab === tab.id 
+                  ? 'bg-os-green/10 text-os-green border border-os-green/30' 
+                  : 'text-os-gray hover:text-white hover:bg-white/5'
+              ]"
+            >
+              <span class="text-lg">{{ tab.icon }}</span>
+              {{ tab.label }}
+            </button>
+          </nav>
+          
+          <div class="mt-8 pt-6 border-t border-white/5">
+            <div class="bg-os-card rounded-lg p-4 gradient-border">
+              <p class="text-xs text-os-gray mb-2">System Status</p>
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 bg-os-green rounded-full pulse-glow"></span>
+                <span class="text-sm text-os-green font-medium">Operational</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Sidebar - Desktop -->
+      <aside class="hidden lg:flex lg:w-64 bg-os-dark border-r border-white/5 flex-col">
         <div class="p-6 border-b border-white/5">
           <h1 class="font-title text-2xl font-bold text-os-green glow-green">
             <span class="scramble-text">{{ scrambledTitle }}</span>
@@ -120,8 +213,8 @@
       
       <!-- Main Content -->
       <main class="flex-1 overflow-auto">
-        <!-- Header -->
-        <header class="sticky top-0 z-10 bg-os-black/80 backdrop-blur-md border-b border-white/5 px-8 py-4">
+        <!-- Desktop Header -->
+        <header class="hidden lg:block sticky top-0 z-10 bg-os-black/80 backdrop-blur-md border-b border-white/5 px-8 py-4">
           <div class="flex items-center justify-between">
             <div>
               <h2 class="font-title text-xl font-semibold text-white">{{ activeTabLabel }}</h2>
@@ -135,25 +228,44 @@
           </div>
         </header>
         
-        <div class="p-8">
+        <div class="p-4 md:p-6 lg:p-8">
+          <!-- Tab Navigation for Mobile -->
+          <div class="lg:hidden mb-6">
+            <div class="flex overflow-x-auto pb-2 space-x-2">
+              <button 
+                v-for="tab in tabs"
+                :key="tab.id"
+                @click="activeTab = tab.id"
+                :class="[
+                  'flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap',
+                  activeTab === tab.id 
+                    ? 'bg-os-green text-os-black font-bold' 
+                    : 'bg-os-card text-os-gray hover:text-white'
+                ]"
+              >
+                {{ tab.label }}
+              </button>
+            </div>
+          </div>
+          
           <!-- Overview Tab -->
-          <div v-if="activeTab === 'overview'" class="space-y-8">
+          <div v-if="activeTab === 'overview'" class="space-y-6 md:space-y-8">
             <!-- Scorecard -->
             <section>
               <h3 class="font-title text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <span class="text-os-green">&#9672;</span> Weekly Scorecard
               </h3>
-              <div class="grid grid-cols-4 gap-4">
-                <div v-for="(item, key) in scorecard" :key="key" class="bg-os-card rounded-xl p-5 gradient-border card-hover">
+              <div class="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                <div v-for="(item, key) in scorecard" :key="key" class="bg-os-card rounded-xl p-4 md:p-5 gradient-border card-hover">
                   <div class="flex items-center justify-between mb-3">
-                    <span class="text-os-gray text-sm uppercase tracking-wider">{{ key }}</span>
+                    <span class="text-os-gray text-xs md:text-sm uppercase tracking-wider">{{ key }}</span>
                     <span :class="[
                       'w-3 h-3 rounded-full',
                       item.status === 'green' ? 'bg-os-green pulse-glow' : 
                       item.status === 'yellow' ? 'bg-os-yellow' : 'bg-os-red'
                     ]"></span>
                   </div>
-                  <p class="text-white text-sm">{{ item.reason }}</p>
+                  <p class="text-white text-xs md:text-sm">{{ item.reason }}</p>
                 </div>
               </div>
             </section>
@@ -163,11 +275,11 @@
               <h3 class="font-title text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <span class="text-os-green">&#9650;</span> Top 3 Wins
               </h3>
-              <div class="bg-os-card rounded-xl p-6 gradient-border">
+              <div class="bg-os-card rounded-xl p-4 md:p-6 gradient-border">
                 <div class="space-y-4">
-                  <div v-for="(win, i) in topWins" :key="i" class="flex items-start gap-4">
-                    <span class="w-8 h-8 bg-os-green/20 rounded-lg flex items-center justify-center text-os-green font-bold text-sm">{{ i + 1 }}</span>
-                    <p class="text-white text-sm pt-1.5">{{ win }}</p>
+                  <div v-for="(win, i) in topWins" :key="i" class="flex items-start gap-3 md:gap-4">
+                    <span class="w-6 h-6 md:w-8 md:h-8 bg-os-green/20 rounded-lg flex items-center justify-center text-os-green font-bold text-xs md:text-sm">{{ i + 1 }}</span>
+                    <p class="text-white text-xs md:text-sm pt-0.5 md:pt-1.5">{{ win }}</p>
                   </div>
                 </div>
               </div>
@@ -178,16 +290,16 @@
               <h3 class="font-title text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <span class="text-os-red">&#9660;</span> Top 3 Risks & Solutions
               </h3>
-              <div class="grid grid-cols-3 gap-4">
-                <div v-for="(risk, i) in risks" :key="i" class="bg-os-card rounded-xl p-5 gradient-border card-hover">
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                <div v-for="(risk, i) in risks" :key="i" class="bg-os-card rounded-xl p-4 md:p-5 gradient-border card-hover">
                   <div class="flex items-center gap-2 mb-3">
-                    <span class="w-6 h-6 bg-os-red/20 rounded flex items-center justify-center text-os-red text-xs font-bold">{{ i + 1 }}</span>
-                    <span class="text-os-red text-sm font-medium">Risk</span>
+                    <span class="w-5 h-5 md:w-6 md:h-6 bg-os-red/20 rounded flex items-center justify-center text-os-red text-xs font-bold">{{ i + 1 }}</span>
+                    <span class="text-os-red text-xs md:text-sm font-medium">Risk</span>
                   </div>
-                  <p class="text-white text-sm mb-4">{{ risk.risk }}</p>
+                  <p class="text-white text-xs md:text-sm mb-3 md:mb-4">{{ risk.risk }}</p>
                   <div class="border-t border-white/10 pt-3">
                     <span class="text-os-green text-xs uppercase tracking-wider">Solution</span>
-                    <p class="text-os-gray text-sm mt-1">{{ risk.solution }}</p>
+                    <p class="text-os-gray text-xs md:text-sm mt-1">{{ risk.solution }}</p>
                   </div>
                 </div>
               </div>
@@ -199,24 +311,26 @@
                 <span class="text-os-green">&#8594;</span> Next Week Actions
               </h3>
               <div class="bg-os-card rounded-xl overflow-hidden gradient-border">
-                <table class="w-full">
-                  <thead class="bg-white/5">
-                    <tr>
-                      <th class="text-left text-os-gray text-xs uppercase tracking-wider px-6 py-3">Task</th>
-                      <th class="text-left text-os-gray text-xs uppercase tracking-wider px-6 py-3">Owner</th>
-                      <th class="text-left text-os-gray text-xs uppercase tracking-wider px-6 py-3">Deadline</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(action, i) in nextWeekActions" :key="i" class="border-t border-white/5 hover:bg-white/5 transition-colors">
-                      <td class="px-6 py-4 text-white text-sm">{{ action.task }}</td>
-                      <td class="px-6 py-4">
-                        <span class="bg-os-green/10 text-os-green px-3 py-1 rounded-full text-xs">{{ action.owner }}</span>
-                      </td>
-                      <td class="px-6 py-4 text-os-gray text-sm">{{ action.deadline }}</td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div class="responsive-table-container">
+                  <table class="w-full responsive-table">
+                    <thead class="bg-white/5">
+                      <tr>
+                        <th class="text-left text-os-gray text-xs uppercase tracking-wider px-4 md:px-6 py-3">Task</th>
+                        <th class="text-left text-os-gray text-xs uppercase tracking-wider px-4 md:px-6 py-3">Owner</th>
+                        <th class="text-left text-os-gray text-xs uppercase tracking-wider px-4 md:px-6 py-3">Deadline</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(action, i) in nextWeekActions" :key="i" class="border-t border-white/5 hover:bg-white/5 transition-colors">
+                        <td class="px-4 md:px-6 py-3 md:py-4 text-white text-xs md:text-sm">{{ action.task }}</td>
+                        <td class="px-4 md:px-6 py-3 md:py-4">
+                          <span class="bg-os-green/10 text-os-green px-2 md:px-3 py-1 rounded-full text-xs">{{ action.owner }}</span>
+                        </td>
+                        <td class="px-4 md:px-6 py-3 md:py-4 text-os-gray text-xs md:text-sm">{{ action.deadline }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </section>
             
@@ -225,159 +339,161 @@
               <h3 class="font-title text-lg font-semibold text-os-green mb-4 flex items-center gap-2">
                 <span>&#9673;</span> Hidden Insight
               </h3>
-              <div class="bg-os-green/5 border border-os-green/30 rounded-xl p-6">
-                <p class="text-white text-sm leading-relaxed">{{ hiddenInsight }}</p>
+              <div class="bg-os-green/5 border border-os-green/30 rounded-xl p-4 md:p-6">
+                <p class="text-white text-xs md:text-sm leading-relaxed">{{ hiddenInsight }}</p>
               </div>
             </section>
           </div>
           
           <!-- Crypto Tab -->
-          <div v-if="activeTab === 'crypto'" class="space-y-6">
+          <div v-if="activeTab === 'crypto'" class="space-y-4 md:space-y-6">
             <!-- Summary Cards -->
-            <div class="grid grid-cols-5 gap-4">
-              <div class="bg-os-card rounded-xl p-5 gradient-border">
-                <p class="text-os-gray text-xs uppercase tracking-wider mb-2">Total Shipped</p>
-                <p class="font-title text-3xl font-bold text-os-green glow-green">{{ cryptoSummary.shipped }}</p>
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-2 md:gap-4">
+              <div class="bg-os-card rounded-xl p-3 md:p-4 lg:p-5 gradient-border">
+                <p class="text-os-gray text-xs uppercase tracking-wider mb-1 md:mb-2">Total Shipped</p>
+                <p class="font-title text-xl md:text-2xl lg:text-3xl font-bold text-os-green glow-green">{{ cryptoSummary.shipped }}</p>
               </div>
-              <div class="bg-os-card rounded-xl p-5 gradient-border">
-                <p class="text-os-gray text-xs uppercase tracking-wider mb-2">Total Revenue</p>
-                <p class="font-title text-3xl font-bold text-os-green glow-green">${{ cryptoSummary.totalRevenue.toLocaleString() }}</p>
+              <div class="bg-os-card rounded-xl p-3 md:p-4 lg:p-5 gradient-border">
+                <p class="text-os-gray text-xs uppercase tracking-wider mb-1 md:mb-2">Total Revenue</p>
+                <p class="font-title text-xl md:text-2xl lg:text-3xl font-bold text-os-green glow-green">${{ cryptoSummary.totalRevenue.toLocaleString() }}</p>
               </div>
-              <div class="bg-os-card rounded-xl p-5 gradient-border">
-                <p class="text-os-gray text-xs uppercase tracking-wider mb-2">Hit Rate</p>
-                <p class="font-title text-3xl font-bold text-os-green glow-green">{{ cryptoSummary.hitRate }}%</p>
+              <div class="bg-os-card rounded-xl p-3 md:p-4 lg:p-5 gradient-border">
+                <p class="text-os-gray text-xs uppercase tracking-wider mb-1 md:mb-2">Hit Rate</p>
+                <p class="font-title text-xl md:text-2xl lg:text-3xl font-bold text-os-green glow-green">{{ cryptoSummary.hitRate }}%</p>
               </div>
-              <div class="bg-os-card rounded-xl p-5 gradient-border">
-                <p class="text-os-gray text-xs uppercase tracking-wider mb-2">Avg Revenue</p>
-                <p class="font-title text-3xl font-bold text-os-green glow-green">${{ cryptoSummary.avgRevenue }}</p>
+              <div class="bg-os-card rounded-xl p-3 md:p-4 lg:p-5 gradient-border">
+                <p class="text-os-gray text-xs uppercase tracking-wider mb-1 md:mb-2">Avg Revenue</p>
+                <p class="font-title text-xl md:text-2xl lg:text-3xl font-bold text-os-green glow-green">${{ cryptoSummary.avgRevenue }}</p>
               </div>
-              <div class="bg-os-card rounded-xl p-5 gradient-border">
-                <p class="text-os-gray text-xs uppercase tracking-wider mb-2">Double Downs</p>
-                <p class="font-title text-3xl font-bold text-os-green glow-green">{{ cryptoSummary.doubleDowns }}</p>
+              <div class="bg-os-card rounded-xl p-3 md:p-4 lg:p-5 gradient-border col-span-2 lg:col-span-1">
+                <p class="text-os-gray text-xs uppercase tracking-wider mb-1 md:mb-2">Double Downs</p>
+                <p class="font-title text-xl md:text-2xl lg:text-3xl font-bold text-os-green glow-green">{{ cryptoSummary.doubleDowns }}</p>
               </div>
             </div>
             
             <!-- Projects Table -->
             <div class="bg-os-card rounded-xl overflow-hidden gradient-border">
-              <table class="w-full">
-                <thead class="bg-white/5">
-                  <tr>
-                    <th class="text-left text-os-gray text-xs uppercase tracking-wider px-6 py-4">Project</th>
-                    <th class="text-left text-os-gray text-xs uppercase tracking-wider px-6 py-4">Engineer</th>
-                    <th class="text-left text-os-gray text-xs uppercase tracking-wider px-6 py-4">Ship Date</th>
-                    <th class="text-left text-os-gray text-xs uppercase tracking-wider px-6 py-4">Status</th>
-                    <th class="text-left text-os-gray text-xs uppercase tracking-wider px-6 py-4">Revenue</th>
-                    <th class="text-left text-os-gray text-xs uppercase tracking-wider px-6 py-4">Users</th>
-                    <th class="text-left text-os-gray text-xs uppercase tracking-wider px-6 py-4">Notes</th>
-                    <th class="text-left text-os-gray text-xs uppercase tracking-wider px-6 py-4">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="project in cryptoProjects" :key="project.id" class="border-t border-white/5 hover:bg-white/5 transition-colors">
-                    <td class="px-6 py-4">
-                      <div class="flex items-center gap-3">
-                        <span class="text-os-green font-mono text-sm">{{ project.id }}</span>
-                        <span class="text-white font-medium">{{ project.name }}</span>
-                      </div>
-                    </td>
-                    <td class="px-6 py-4 text-os-gray text-sm">{{ project.engineer }}</td>
-                    <td class="px-6 py-4 text-os-gray text-sm">{{ project.shipDate }}</td>
-                    <td class="px-6 py-4">
-                      <span :class="['px-3 py-1 rounded-full text-xs font-medium uppercase tracking-wider', getStatusClass(project.status)]">
-                        {{ project.status }}
-                      </span>
-                    </td>
-                    <td class="px-6 py-4">
-                      <span :class="['font-mono text-sm', project.revenue > 1000 ? 'text-os-green' : 'text-white']">
-                        ${{ project.revenue.toLocaleString() }}
-                      </span>
-                    </td>
-                    <td class="px-6 py-4 text-white text-sm">{{ project.users.toLocaleString() }}</td>
-                    <td class="px-6 py-4 text-os-gray text-sm max-w-xs">{{ project.notes }}</td>
-                    <td class="px-6 py-4">
-                      <span v-if="project.doubleDown" class="bg-os-green text-os-black px-3 py-1 rounded-full text-xs font-bold">DOUBLE DOWN</span>
-                      <span v-else-if="project.revenue > 500 && project.revenue < 2000" class="bg-os-yellow/20 text-os-yellow px-3 py-1 rounded-full text-xs">PUSH</span>
-                      <span v-else class="text-os-gray text-xs">-</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div class="responsive-table-container">
+                <table class="w-full responsive-table">
+                  <thead class="bg-white/5">
+                    <tr>
+                      <th class="text-left text-os-gray text-xs uppercase tracking-wider px-4 md:px-6 py-3">Project</th>
+                      <th class="text-left text-os-gray text-xs uppercase tracking-wider px-4 md:px-6 py-3 hidden lg:table-cell">Engineer</th>
+                      <th class="text-left text-os-gray text-xs uppercase tracking-wider px-4 md:px-6 py-3">Ship Date</th>
+                      <th class="text-left text-os-gray text-xs uppercase tracking-wider px-4 md:px-6 py-3">Status</th>
+                      <th class="text-left text-os-gray text-xs uppercase tracking-wider px-4 md:px-6 py-3 hidden md:table-cell">Revenue</th>
+                      <th class="text-left text-os-gray text-xs uppercase tracking-wider px-4 md:px-6 py-3 hidden lg:table-cell">Users</th>
+                      <th class="text-left text-os-gray text-xs uppercase tracking-wider px-4 md:px-6 py-3 hidden xl:table-cell">Notes</th>
+                      <th class="text-left text-os-gray text-xs uppercase tracking-wider px-4 md:px-6 py-3">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="project in cryptoProjects" :key="project.id" class="border-t border-white/5 hover:bg-white/5 transition-colors">
+                      <td class="px-4 md:px-6 py-3 md:py-4">
+                        <div class="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                          <span class="text-os-green font-mono text-sm">{{ project.id }}</span>
+                          <span class="text-white font-medium text-xs md:text-sm">{{ project.name }}</span>
+                        </div>
+                      </td>
+                      <td class="px-4 md:px-6 py-3 md:py-4 text-os-gray text-sm hidden lg:table-cell">{{ project.engineer }}</td>
+                      <td class="px-4 md:px-6 py-3 md:py-4 text-os-gray text-sm">{{ project.shipDate }}</td>
+                      <td class="px-4 md:px-6 py-3 md:py-4">
+                        <span :class="['px-2 md:px-3 py-1 rounded-full text-xs font-medium uppercase tracking-wider truncate', getStatusClass(project.status)]">
+                          {{ project.status }}
+                        </span>
+                      </td>
+                      <td class="px-4 md:px-6 py-3 md:py-4 hidden md:table-cell">
+                        <span :class="['font-mono text-sm', project.revenue > 1000 ? 'text-os-green' : 'text-white']">
+                          ${{ project.revenue.toLocaleString() }}
+                        </span>
+                      </td>
+                      <td class="px-4 md:px-6 py-3 md:py-4 text-white text-sm hidden lg:table-cell">{{ project.users.toLocaleString() }}</td>
+                      <td class="px-4 md:px-6 py-3 md:py-4 text-os-gray text-sm hidden xl:table-cell max-w-xs truncate">{{ project.notes }}</td>
+                      <td class="px-4 md:px-6 py-3 md:py-4">
+                        <span v-if="project.doubleDown" class="bg-os-green text-os-black px-2 md:px-3 py-1 rounded-full text-xs font-bold truncate">DOUBLE DOWN</span>
+                        <span v-else-if="project.revenue > 500 && project.revenue < 2000" class="bg-os-yellow/20 text-os-yellow px-2 md:px-3 py-1 rounded-full text-xs truncate">PUSH</span>
+                        <span v-else class="text-os-gray text-xs">-</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
           
           <!-- B2C Apps Tab -->
-          <div v-if="activeTab === 'b2c'" class="space-y-6">
-            <div class="grid grid-cols-2 gap-6">
-              <div v-for="app in b2cApps" :key="app.name" class="bg-os-card rounded-xl p-6 gradient-border card-hover">
-                <div class="flex items-center justify-between mb-6">
+          <div v-if="activeTab === 'b2c'" class="space-y-4 md:space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+              <div v-for="app in b2cApps" :key="app.name" class="bg-os-card rounded-xl p-4 md:p-6 gradient-border card-hover">
+                <div class="flex items-start md:items-center justify-between mb-4 md:mb-6 flex-col md:flex-row gap-3 md:gap-0">
                   <div>
-                    <h3 class="font-title text-xl font-bold text-white">{{ app.name }}</h3>
-                    <p class="text-os-gray text-sm">{{ app.niche }} - {{ app.launchDate }}</p>
+                    <h3 class="font-title text-lg md:text-xl font-bold text-white">{{ app.name }}</h3>
+                    <p class="text-os-gray text-xs md:text-sm">{{ app.niche }} - {{ app.launchDate }}</p>
                   </div>
                   <span :class="['px-3 py-1 rounded-full text-xs font-medium uppercase tracking-wider', getStatusClass(app.status)]">
                     {{ app.status }}
                   </span>
                 </div>
                 
-                <div class="grid grid-cols-3 gap-4 mb-6">
-                  <div class="bg-os-black/50 rounded-lg p-4">
+                <div class="grid grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
+                  <div class="bg-os-black/50 rounded-lg p-3 md:p-4">
                     <p class="text-os-gray text-xs uppercase mb-1">Downloads</p>
-                    <p class="font-title text-2xl font-bold text-os-green">{{ app.downloads.toLocaleString() }}</p>
+                    <p class="font-title text-lg md:text-2xl font-bold text-os-green">{{ app.downloads.toLocaleString() }}</p>
                   </div>
-                  <div class="bg-os-black/50 rounded-lg p-4">
+                  <div class="bg-os-black/50 rounded-lg p-3 md:p-4">
                     <p class="text-os-gray text-xs uppercase mb-1">Revenue</p>
-                    <p class="font-title text-2xl font-bold text-os-green">${{ app.revenue.toLocaleString() }}</p>
+                    <p class="font-title text-lg md:text-2xl font-bold text-os-green">${{ app.revenue.toLocaleString() }}</p>
                   </div>
-                  <div class="bg-os-black/50 rounded-lg p-4">
+                  <div class="bg-os-black/50 rounded-lg p-3 md:p-4">
                     <p class="text-os-gray text-xs uppercase mb-1">MRR</p>
-                    <p class="font-title text-2xl font-bold text-os-green">${{ app.mrr.toLocaleString() }}</p>
+                    <p class="font-title text-lg md:text-2xl font-bold text-os-green">${{ app.mrr.toLocaleString() }}</p>
                   </div>
                 </div>
                 
-                <div class="grid grid-cols-3 gap-4">
-                  <div class="bg-os-black/50 rounded-lg p-4">
+                <div class="grid grid-cols-3 gap-3 md:gap-4">
+                  <div class="bg-os-black/50 rounded-lg p-3 md:p-4">
                     <p class="text-os-gray text-xs uppercase mb-1">Conversion</p>
-                    <p class="font-title text-xl font-bold" :class="app.conversionRate > 3 ? 'text-os-green' : 'text-white'">{{ app.conversionRate }}%</p>
+                    <p class="font-title text-base md:text-xl font-bold" :class="app.conversionRate > 3 ? 'text-os-green' : 'text-white'">{{ app.conversionRate }}%</p>
                   </div>
-                  <div class="bg-os-black/50 rounded-lg p-4">
+                  <div class="bg-os-black/50 rounded-lg p-3 md:p-4">
                     <p class="text-os-gray text-xs uppercase mb-1">Rating</p>
-                    <p class="font-title text-xl font-bold" :class="app.rating >= 4 ? 'text-os-green' : app.rating > 0 ? 'text-os-yellow' : 'text-white'">
-                      {{ app.rating > 0 ? app.rating + ' &#9733;' : '-' }}
+                    <p class="font-title text-base md:text-xl font-bold" :class="app.rating >= 4 ? 'text-os-green' : app.rating > 0 ? 'text-os-yellow' : 'text-white'">
+                      {{ app.rating > 0 ? app.rating + ' ★' : '-' }}
                     </p>
                   </div>
-                  <div class="bg-os-black/50 rounded-lg p-4">
+                  <div class="bg-os-black/50 rounded-lg p-3 md:p-4">
                     <p class="text-os-gray text-xs uppercase mb-1">Reviews</p>
-                    <p class="font-title text-xl font-bold text-white">{{ app.reviews > 0 ? app.reviews : '-' }}</p>
+                    <p class="font-title text-base md:text-xl font-bold text-white">{{ app.reviews > 0 ? app.reviews : '-' }}</p>
                   </div>
                 </div>
                 
                 <div v-if="app.notes" class="mt-4 p-3 bg-os-yellow/10 border border-os-yellow/30 rounded-lg">
-                  <p class="text-os-yellow text-sm">{{ app.notes }}</p>
+                  <p class="text-os-yellow text-xs md:text-sm">{{ app.notes }}</p>
                 </div>
               </div>
             </div>
           </div>
           
           <!-- DeFi Protocols Tab -->
-          <div v-if="activeTab === 'defi'" class="space-y-6">
-            <div v-for="protocol in defiProtocols" :key="protocol.name" class="bg-os-card rounded-xl p-6 gradient-border">
-              <div class="flex items-center justify-between mb-6">
+          <div v-if="activeTab === 'defi'" class="space-y-4 md:space-y-6">
+            <div v-for="protocol in defiProtocols" :key="protocol.name" class="bg-os-card rounded-xl p-4 md:p-6 gradient-border">
+              <div class="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-6 gap-4 md:gap-0">
                 <div>
-                  <h3 class="font-title text-2xl font-bold text-white">{{ protocol.name }}</h3>
-                  <p class="text-os-gray text-sm">{{ protocol.phase }} - {{ protocol.timeline }}</p>
+                  <h3 class="font-title text-xl md:text-2xl font-bold text-white">{{ protocol.name }}</h3>
+                  <p class="text-os-gray text-xs md:text-sm">{{ protocol.phase }} - {{ protocol.timeline }}</p>
                 </div>
                 <div class="flex items-center gap-4">
                   <div class="text-right">
                     <p class="text-os-gray text-xs uppercase">Waitlist</p>
-                    <p class="font-title text-xl font-bold" :class="protocol.waitlist >= protocol.waitlistTarget ? 'text-os-green' : 'text-os-yellow'">
+                    <p class="font-title text-lg md:text-xl font-bold" :class="protocol.waitlist >= protocol.waitlistTarget ? 'text-os-green' : 'text-os-yellow'">
                       {{ protocol.waitlist.toLocaleString() }} / {{ protocol.waitlistTarget.toLocaleString() }}
                     </p>
                   </div>
                 </div>
               </div>
               
-              <div class="grid grid-cols-3 gap-6 mb-6">
-                <div class="bg-os-black/50 rounded-lg p-5">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
+                <div class="bg-os-black/50 rounded-lg p-4 md:p-5">
                   <p class="text-os-gray text-xs uppercase mb-3">Smart Contracts</p>
                   <div class="flex items-center gap-3">
                     <div class="flex-1 bg-white/10 rounded-full h-2">
@@ -386,7 +502,7 @@
                     <span class="text-os-green font-mono text-sm">{{ protocol.smartContractStatus }}</span>
                   </div>
                 </div>
-                <div class="bg-os-black/50 rounded-lg p-5">
+                <div class="bg-os-black/50 rounded-lg p-4 md:p-5">
                   <p class="text-os-gray text-xs uppercase mb-3">Audit Status</p>
                   <span :class="[
                     'px-3 py-1 rounded-full text-xs font-medium',
@@ -395,36 +511,36 @@
                     'bg-os-gray/20 text-os-gray'
                   ]">{{ protocol.auditStatus }}</span>
                 </div>
-                <div class="bg-os-black/50 rounded-lg p-5">
+                <div class="bg-os-black/50 rounded-lg p-4 md:p-5">
                   <p class="text-os-gray text-xs uppercase mb-3">Frontend</p>
-                  <p class="text-white text-sm">{{ protocol.frontendStatus }}</p>
+                  <p class="text-white text-xs md:text-sm">{{ protocol.frontendStatus }}</p>
                 </div>
               </div>
               
-              <div class="bg-os-black/50 rounded-lg p-5">
+              <div class="bg-os-black/50 rounded-lg p-4 md:p-5">
                 <p class="text-os-gray text-xs uppercase mb-2">Key Milestones</p>
-                <p class="text-white text-sm">{{ protocol.milestones }}</p>
+                <p class="text-white text-xs md:text-sm">{{ protocol.milestones }}</p>
               </div>
               
-              <div class="mt-4 bg-os-green/5 border border-os-green/30 rounded-lg p-4">
+              <div class="mt-4 bg-os-green/5 border border-os-green/30 rounded-lg p-3 md:p-4">
                 <p class="text-os-gray text-xs uppercase mb-2">Content Performance</p>
-                <p class="text-white text-sm">{{ protocol.content }}</p>
+                <p class="text-white text-xs md:text-sm">{{ protocol.content }}</p>
               </div>
             </div>
           </div>
           
           <!-- Distribution Tab -->
-          <div v-if="activeTab === 'distribution'" class="space-y-6">
+          <div v-if="activeTab === 'distribution'" class="space-y-4 md:space-y-6">
             <!-- Social Platforms -->
-            <div class="grid grid-cols-4 gap-4">
-              <div class="bg-os-card rounded-xl p-5 gradient-border card-hover">
-                <div class="flex items-center justify-between mb-4">
+            <div class="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+              <div class="bg-os-card rounded-xl p-4 md:p-5 gradient-border card-hover">
+                <div class="flex items-center justify-between mb-3 md:mb-4">
                   <span class="text-os-gray text-sm font-medium">Twitter</span>
                   <span class="text-os-green text-lg font-bold">X</span>
                 </div>
-                <p class="font-title text-3xl font-bold text-white mb-1">{{ distribution.twitter.followers.toLocaleString() }}</p>
-                <p class="text-os-green text-sm">+{{ distribution.twitter.growth }} this week</p>
-                <div class="mt-4 pt-4 border-t border-white/10">
+                <p class="font-title text-2xl md:text-3xl font-bold text-white mb-1">{{ distribution.twitter.followers.toLocaleString() }}</p>
+                <p class="text-os-green text-xs md:text-sm">+{{ distribution.twitter.growth }} this week</p>
+                <div class="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-white/10">
                   <p class="text-os-gray text-xs uppercase mb-1">Engagement</p>
                   <p class="text-white text-sm">{{ distribution.twitter.engagement }}%</p>
                 </div>
@@ -433,14 +549,14 @@
                 </div>
               </div>
               
-              <div class="bg-os-card rounded-xl p-5 gradient-border card-hover">
-                <div class="flex items-center justify-between mb-4">
+              <div class="bg-os-card rounded-xl p-4 md:p-5 gradient-border card-hover">
+                <div class="flex items-center justify-between mb-3 md:mb-4">
                   <span class="text-os-gray text-sm font-medium">LinkedIn</span>
                   <span class="text-os-green text-lg font-bold">in</span>
                 </div>
-                <p class="font-title text-3xl font-bold text-white mb-1">{{ distribution.linkedin.followers.toLocaleString() }}</p>
-                <p class="text-os-green text-sm">+{{ distribution.linkedin.growth }} this week</p>
-                <div class="mt-4 pt-4 border-t border-white/10">
+                <p class="font-title text-2xl md:text-3xl font-bold text-white mb-1">{{ distribution.linkedin.followers.toLocaleString() }}</p>
+                <p class="text-os-green text-xs md:text-sm">+{{ distribution.linkedin.growth }} this week</p>
+                <div class="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-white/10">
                   <p class="text-os-gray text-xs uppercase mb-1">Avg Impressions</p>
                   <p class="text-white text-sm">{{ distribution.linkedin.engagement.toLocaleString() }}</p>
                 </div>
@@ -449,14 +565,14 @@
                 </div>
               </div>
               
-              <div class="bg-os-card rounded-xl p-5 gradient-border card-hover">
-                <div class="flex items-center justify-between mb-4">
+              <div class="bg-os-card rounded-xl p-4 md:p-5 gradient-border card-hover">
+                <div class="flex items-center justify-between mb-3 md:mb-4">
                   <span class="text-os-gray text-sm font-medium">TikTok</span>
                   <span class="text-os-green text-lg font-bold">TT</span>
                 </div>
-                <p class="font-title text-3xl font-bold text-white mb-1">{{ distribution.tiktok.followers.toLocaleString() }}</p>
-                <p class="text-os-gray text-sm">{{ distribution.tiktok.accounts }} faceless accounts</p>
-                <div class="mt-4 pt-4 border-t border-white/10">
+                <p class="font-title text-2xl md:text-3xl font-bold text-white mb-1">{{ distribution.tiktok.followers.toLocaleString() }}</p>
+                <p class="text-os-gray text-xs md:text-sm">{{ distribution.tiktok.accounts }} faceless accounts</p>
+                <div class="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-white/10">
                   <p class="text-os-gray text-xs uppercase mb-1">Videos Posted</p>
                   <p class="text-white text-sm">{{ distribution.tiktok.videos }}</p>
                 </div>
@@ -465,14 +581,14 @@
                 </div>
               </div>
               
-              <div class="bg-os-card rounded-xl p-5 gradient-border card-hover">
-                <div class="flex items-center justify-between mb-4">
+              <div class="bg-os-card rounded-xl p-4 md:p-5 gradient-border card-hover">
+                <div class="flex items-center justify-between mb-3 md:mb-4">
                   <span class="text-os-gray text-sm font-medium">YouTube</span>
                   <span class="text-os-green text-lg font-bold">YT</span>
                 </div>
-                <p class="font-title text-3xl font-bold text-white mb-1">{{ distribution.youtube.subscribers }}</p>
-                <p class="text-os-gray text-sm">{{ distribution.youtube.videos }} video uploaded</p>
-                <div class="mt-4 pt-4 border-t border-white/10">
+                <p class="font-title text-2xl md:text-3xl font-bold text-white mb-1">{{ distribution.youtube.subscribers }}</p>
+                <p class="text-os-gray text-xs md:text-sm">{{ distribution.youtube.videos }} video uploaded</p>
+                <div class="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-white/10">
                   <p class="text-os-gray text-xs uppercase mb-1">Total Views</p>
                   <p class="text-white text-sm">{{ distribution.youtube.views }}</p>
                 </div>
@@ -483,38 +599,38 @@
             </div>
             
             <!-- UGC Section -->
-            <div class="bg-os-card rounded-xl p-6 gradient-border">
-              <div class="flex items-center justify-between mb-6">
+            <div class="bg-os-card rounded-xl p-4 md:p-6 gradient-border">
+              <div class="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-6 gap-3 md:gap-0">
                 <h3 class="font-title text-lg font-bold text-white flex items-center gap-2">
                   <span class="text-os-green">&#9673;</span> UGC Campaign
                 </h3>
-                <span class="bg-os-green/20 text-os-green px-3 py-1 rounded-full text-sm font-medium">
+                <span class="bg-os-green/20 text-os-green px-3 py-1 rounded-full text-sm font-medium self-start md:self-auto">
                   {{ distribution.ugc.creators }} Creators Active
                 </span>
               </div>
               
-              <div class="grid grid-cols-4 gap-6">
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                 <div class="text-center">
-                  <p class="font-title text-4xl font-bold text-os-green glow-green">{{ distribution.ugc.videos }}</p>
-                  <p class="text-os-gray text-sm mt-1">Videos Posted</p>
+                  <p class="font-title text-3xl md:text-4xl font-bold text-os-green glow-green">{{ distribution.ugc.videos }}</p>
+                  <p class="text-os-gray text-xs md:text-sm mt-1">Videos Posted</p>
                 </div>
                 <div class="text-center">
-                  <p class="font-title text-4xl font-bold text-os-green glow-green">{{ (distribution.ugc.views / 1000).toFixed(0) }}K</p>
-                  <p class="text-os-gray text-sm mt-1">Total Views</p>
+                  <p class="font-title text-3xl md:text-4xl font-bold text-os-green glow-green">{{ (distribution.ugc.views / 1000).toFixed(0) }}K</p>
+                  <p class="text-os-gray text-xs md:text-sm mt-1">Total Views</p>
                 </div>
                 <div class="text-center">
-                  <p class="font-title text-4xl font-bold text-os-green glow-green">${{ distribution.ugc.cost }}</p>
-                  <p class="text-os-gray text-sm mt-1">Total Spend</p>
+                  <p class="font-title text-3xl md:text-4xl font-bold text-os-green glow-green">${{ distribution.ugc.cost }}</p>
+                  <p class="text-os-gray text-xs md:text-sm mt-1">Total Spend</p>
                 </div>
                 <div class="text-center">
-                  <p class="font-title text-4xl font-bold text-os-green glow-green">&#8734;</p>
-                  <p class="text-os-gray text-sm mt-1">ROI (Organic)</p>
+                  <p class="font-title text-3xl md:text-4xl font-bold text-os-green glow-green">∞</p>
+                  <p class="text-os-gray text-xs md:text-sm mt-1">ROI (Organic)</p>
                 </div>
               </div>
               
-              <div class="mt-6 p-4 bg-os-green/10 border border-os-green/30 rounded-lg">
+              <div class="mt-4 md:mt-6 p-3 md:p-4 bg-os-green/10 border border-os-green/30 rounded-lg">
                 <p class="text-os-green text-sm font-medium mb-1">Viral Hit</p>
-                <p class="text-white text-sm">{{ distribution.ugc.viralHit }}</p>
+                <p class="text-white text-xs md:text-sm">{{ distribution.ugc.viralHit }}</p>
               </div>
             </div>
           </div>
@@ -531,6 +647,7 @@
         return {
           activeTab: 'overview',
           scrambledTitle: 'OS TRACKER',
+          mobileMenuOpen: false,
           tabs: [
             { id: 'overview', label: 'Overview', icon: '\u25C8' },
             { id: 'crypto', label: 'Crypto Projects', icon: '\u25C9' },
